@@ -39,8 +39,8 @@
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
-    <IncludePath>E:\STUDY\opengl\glfw-3.2.1.bin.WIN32\include;E:\STUDY\opengl\glew-2.1.0\include;$(IncludePath)</IncludePath>
-    <LibraryPath>E:\STUDY\opengl\glfw-3.2.1.bin.WIN32\lib-vc2013;E:\STUDY\opengl\glew-2.1.0\lib\Release\Win32;$(LibraryPath)</LibraryPath>
+    <IncludePath>E:\STUDY\opengl\glfw-3.2.1.bin.WIN32\include;E:\STUDY\opengl\glew-2.1.0\include;E:\STUDY\opengl\Simple OpenGL Image Library\src;$(IncludePath)</IncludePath>
+    <LibraryPath>E:\STUDY\opengl\glfw-3.2.1.bin.WIN32\lib-vc2013;E:\STUDY\opengl\glew-2.1.0\lib\Release\Win32;E:\STUDY\opengl\Simple OpenGL Image Library\lib;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -50,7 +50,7 @@
     </ClCompile>
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>glew32s.lib;opengl32.lib;glfw3.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>glew32s.lib;opengl32.lib;glfw3.lib;SOIL.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">

@@ -6,6 +6,7 @@
 // GLFW
 #include <GLFW/glfw3.h>
 #include "Utils.h"
+#include <SOIL.h>
 
 
 using namespace std;
@@ -102,23 +103,60 @@ long createProgram(char* pathVertexShader, char* pathFragmentShader)
 }
 
 
-int main()
-{
-	//Init a window
-	GLFWwindow* window = initWindow(800, 600, "Learning openGL");
-	if (!window){
-		cout << ">>Fail creating a window!\n";
-		return -1;
+void draw001_triangle(GLFWwindow* window, long shaderProgram){
+	GLfloat vertices[] = {
+		//-0.5f, -0.5f, 0.0f,
+		//0.5f, -0.5f, 0.0f,
+		//0.0f, 0.5f, 0.0f
+		0.5f, -0.5f, 0.0f, 1.0f, 0.0f, 0.0f,   // 右下
+		-0.5f, -0.5f, 0.0f, 0.0f, 1.0f, 0.0f,   // 左下
+		0.0f, 0.5f, 0.0f, 0.0f, 0.0f, 1.0f    // 顶部
+	};
+
+	GLuint VBO, VAO;
+	glGenBuffers(1, &VBO);
+	glGenVertexArrays(1, &VAO);
+
+	//1，绑定VAO
+	glBindVertexArray(VAO);
+	//2, 把顶点数据复制到缓冲中共gl使用
+	glBindBuffer(GL_ARRAY_BUFFER, VBO);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+	//3, 设置顶点属性，gl如果解析数据
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(GL_FLOAT), (GLvoid*)0);
+	glEnableVertexAttribArray(0);
+	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(GL_FLOAT), (GLvoid*)(3 * sizeof(GL_FLOAT)));
+	glEnableVertexAttribArray(1);
+
+	//4，解绑VAO
+	glBindVertexArray(0);
+
+
+	//Game loop
+	while (!glfwWindowShouldClose(window)){
+		//Poll events
+		glfwPollEvents();
+
+		//Clear screen
+		glClearColor(0.2f, .3f, .3f, 1.0f);
+		glClear(GL_COLOR_BUFFER_BIT);
+
+		GLint xoffset = glGetUniformLocation(shaderProgram, "xoffset");
+		glUniform2f(xoffset, 0.0f, 0);
+		glUseProgram(shaderProgram);
+		glBindVertexArray(VAO);
+		glDrawArrays(GL_TRIANGLES, 0, 3);
+		glBindVertexArray(0);
+
+		glfwSwapBuffers(window);
 	}
 
-	long shaderProgram = createProgram("./vs.vert", "./fs.frag");
-	if (shaderProgram < 0){
-		cout << "Fail creating shader program!\n";
-		return -1;
-	}
+	glDeleteVertexArrays(1, &VAO);
+	glDeleteBuffers(1, &VBO);
+}
 
-	long shaderProgramYellow = createProgram("./vs_in_pos_clr.vert", "./fs1.frag");
-	
+
+void draw002_withShaders(GLFWwindow* window, long shaderProgramYellow){
 	//----------------------------------------------------------
 	GLfloat triangle1[] = {
 		//----1st triangle
@@ -224,25 +262,16 @@ int main()
 		//--------------------------------------------------
 		//Draw triangles
 		GLint xoffset = glGetUniformLocation(shaderProgramYellow, "xoffset");
-		glUniform2f(xoffset, 0.5f, 0);
+		glUniform2f(xoffset, 0.0f, 0);
 		glUseProgram(shaderProgramYellow);
 		glBindVertexArray(VAO[0]);
 		glDrawArrays(GL_TRIANGLES, 0, 3);
 		glBindVertexArray(0);
 
-		//----------------------------------------
-		//Use uniform to change the value from shaders
-		//----------------------------------------
-		//GLfloat timeValue = glfwGetTime();
-		//GLfloat greenValue = (sin(timeValue) / 2) + 0.5f;
-		//GLint colorLocation = glGetUniformLocation(shaderProgramYellow, "ourColor");
+
 		//glUseProgram(shaderProgramYellow);
-		//glUniform4f(colorLocation, 0.0f, greenValue, 0.0f, 1.0f);
-
-
-		glUseProgram(shaderProgramYellow);
-		glBindVertexArray(VAO[1]);
-		glDrawArrays(GL_TRIANGLES, 0, 3);
+		//glBindVertexArray(VAO[1]);
+		//glDrawArrays(GL_TRIANGLES, 0, 3);
 
 		glBindVertexArray(0);
 
@@ -253,6 +282,142 @@ int main()
 	//------------------------------------
 	glDeleteVertexArrays(sizeof(VAO), VAO);
 	glDeleteBuffers(sizeof(VBO), VBO);
+}
+
+
+void draw003_texture(GLFWwindow* window, long shaderProgram){
+	//Load img
+	int imgw, imgh;
+	unsigned char* image = SOIL_load_image("./100_rgb.png", &imgw, &imgh, 0, SOIL_LOAD_RGBA);
+
+	//Gen texture
+	GLuint tex0, tex1;
+	glGenTextures(1, &tex0);
+	glBindTexture(GL_TEXTURE_2D, tex0);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, imgw, imgh, 0, GL_RGBA, GL_UNSIGNED_BYTE, image);
+	glGenerateMipmap(GL_TEXTURE_2D); //多级渐远纹理
+	//图片已经绑定到纹理上去了，现在需要释放内存
+	SOIL_free_image_data(image);
+	glBindTexture(GL_TEXTURE_2D, 0);
+
+	image = NULL;
+	image = SOIL_load_image("./100_a.png", &imgw, &imgh, 0, SOIL_LOAD_RGBA);
+	glGenTextures(1, &tex1);
+	glBindTexture(GL_TEXTURE_2D, tex1);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, imgw, imgh, 0, GL_RGBA, GL_UNSIGNED_BYTE, image);
+	glGenerateMipmap(GL_TEXTURE_2D);
+	SOIL_free_image_data(image);
+	glBindTexture(GL_TEXTURE_2D, 0);
+
+
+	GLfloat vertices[] = {
+		//-0.5f, -0.5f, 0.0f,
+		//0.5f, -0.5f, 0.0f,
+		//0.0f, 0.5f, 0.0f
+
+		//(x, y, z), (r, g, b), (texx, texy)
+		//0.5f, -0.5f, 0.0f, 1.0f, 0.0f, 0.0f, 1.0f, 0.0f,   // 右下
+		//-0.5f, -0.5f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f,   // 左下
+		//0.0f, 0.5f, 0.0f, 0.0f, 0.0f, 1.0f, 0.5f, 1.0f    // 顶部
+
+		//     ---- 位置 ----       ---- 颜色 ----     - 纹理坐标 -
+		0.5f, 0.5f, 0.0f, 1.0f, 0.0f, 0.0f, 1.0f, 1.0f,   // 右上
+		0.5f, -0.5f, 0.0f, 0.0f, 1.0f, 0.0f, 1.0f, 0.0f,   // 右下
+		-0.5f, -0.5f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f,   // 左下
+		-0.5f, 0.5f, 0.0f, 1.0f, 1.0f, 0.0f, 0.0f, 1.0f    // 左上
+	};
+
+	GLuint indices[] = {  // Note that we start from 0!
+		0, 1, 3, // First Triangle
+		1, 2, 3  // Second Triangle
+	};
+
+	GLuint VBO, VAO, EBO;
+	glGenBuffers(1, &VBO);
+	glGenBuffers(1, &EBO);
+	glGenVertexArrays(1, &VAO);
+
+	//1，绑定VAO
+	glBindVertexArray(VAO);
+	//2, 把顶点数据复制到缓冲中共gl使用
+	glBindBuffer(GL_ARRAY_BUFFER, VBO);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
+	//3, 设置顶点属性，gl如果解析数据
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(GL_FLOAT), (GLvoid*)0);
+	glEnableVertexAttribArray(0);
+	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(GL_FLOAT), (GLvoid*)(3 * sizeof(GL_FLOAT)));
+	glEnableVertexAttribArray(1);
+	glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(GL_FLOAT), (GLvoid*)(6 * sizeof(GL_FLOAT)));
+	glEnableVertexAttribArray(2);
+
+
+	//4，解绑VAO
+	glBindVertexArray(0);
+
+	//混合函数
+	glEnable(GL_BLEND); //开启混合
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+
+	//Game loop
+	while (!glfwWindowShouldClose(window)){
+		//Poll events
+		glfwPollEvents();
+
+		//Clear screen
+		glClearColor(0.2f, .3f, .3f, 1.0f);
+		glClear(GL_COLOR_BUFFER_BIT);
+
+		GLint xoffset = glGetUniformLocation(shaderProgram, "xoffset");
+		glUniform2f(xoffset, 0.0f, 0);
+
+		//----bind texture----
+		//glBindTexture(GL_TEXTURE_2D, tex0);
+		glActiveTexture(GL_TEXTURE0);
+		glBindTexture(GL_TEXTURE_2D, tex0);
+		glUniform1i(glGetUniformLocation(shaderProgram, "ourTexture1"), 0);
+		glActiveTexture(GL_TEXTURE1);
+		glBindTexture(GL_TEXTURE_2D, tex1);
+		glUniform1i(glGetUniformLocation(shaderProgram, "ourTexture2"), 1);
+		//--------
+
+		glUseProgram(shaderProgram);
+		glBindVertexArray(VAO);
+		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);  //glDrawArrays(GL_TRIANGLES, 0, 4);
+		glBindVertexArray(0);
+
+		glfwSwapBuffers(window);
+	}
+
+	glDeleteVertexArrays(1, &VAO);
+	glDeleteBuffers(1, &VBO);
+}
+
+
+int main()
+{
+	//Init a window
+	GLFWwindow* window = initWindow(800, 600, "Learning openGL");
+	if (!window){
+		cout << ">>Fail creating a window!\n";
+		return -1;
+	}
+
+	long shaderProgram = createProgram("./vs.vert", "./fs.frag");
+	if (shaderProgram < 0){
+		cout << "Fail creating shader program!\n";
+		return -1;
+	}
+
+	long shaderProgramYellow = createProgram("./vs_in_pos_clr.vert", "./fs1.frag");
+	
+	draw003_texture(window, shaderProgramYellow);
+	//draw001_triangle(window, shaderProgramYellow);
+	//draw002_withShaders(window, shaderProgramYellow);
+	
 	glfwTerminate();
 
 	return 0;
